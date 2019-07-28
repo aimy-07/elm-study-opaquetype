@@ -1,10 +1,11 @@
-module Main exposing (Model, Msg(..), init, main, update, view, viewItem)
+module Main exposing (main)
 
 import Browser
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (..)
-import Item exposing (Item, LabelColor(..))
+import Item exposing (Item)
+import Items exposing (Items)
 
 
 
@@ -12,15 +13,15 @@ import Item exposing (Item, LabelColor(..))
 
 
 type alias Model =
-    { items : List Item
+    { items : Items
     , newItem : Item
     }
 
 
 init : ( Model, Cmd Msg )
 init =
-    ( { items = []
-      , newItem = Item.initItem
+    ( { items = Items.init
+      , newItem = Item.init
       }
     , Cmd.none
     )
@@ -44,35 +45,21 @@ update msg model =
                 newItem =
                     model.newItem
             in
-            ( { model | newItem = { newItem | text = text, textCount = String.length text } }, Cmd.none )
+            ( { model | newItem = Item.updateText text newItem }, Cmd.none )
 
         ChangeLabel ->
             let
                 newItem =
                     model.newItem
-
-                nextLabelColor =
-                    case model.newItem.labelColor of
-                        Red ->
-                            Blue
-
-                        Blue ->
-                            Red
             in
-            ( { model | newItem = { newItem | labelColor = nextLabelColor } }, Cmd.none )
+            ( { model | newItem = Item.updateLabelColor newItem }, Cmd.none )
 
         AddItem ->
             let
-                newItem =
-                    model.newItem
-
-                addingItem =
-                    { newItem | title = "Item" ++ (String.fromInt <| (+) 1 <| List.length model.items) }
-
                 nextItems =
-                    model.items ++ [ addingItem ]
+                    Items.add model.newItem model.items
             in
-            ( { model | items = nextItems, newItem = Item.initItem }, Cmd.none )
+            ( { model | items = nextItems, newItem = Item.init }, Cmd.none )
 
 
 
@@ -83,18 +70,13 @@ view : Model -> Html Msg
 view model =
     let
         color =
-            case model.newItem.labelColor of
-                Red ->
-                    "red"
-
-                Blue ->
-                    "blue"
+            Item.toStringLabelColor model.newItem
     in
     div []
         [ h1 [] [ text "ItemList" ]
         , div []
-            (List.map (\item -> viewItem item) model.items)
-        , input [ onInput ChangeNewItemText, style "color" color, value model.newItem.text ] []
+            (List.map (\item -> viewItem item) (Items.toItems model.items))
+        , input [ onInput ChangeNewItemText, style "color" color, value <| Item.toText model.newItem ] []
         , button [ onClick ChangeLabel ] [ text "Change LabelColor" ]
         , button [ onClick AddItem ] [ text "Add Item" ]
         ]
@@ -104,16 +86,17 @@ viewItem : Item -> Html msg
 viewItem item =
     let
         color =
-            case item.labelColor of
-                Red ->
-                    "red"
+            Item.toStringLabelColor item
 
-                Blue ->
-                    "blue"
+        itemText =
+            Item.toText item
+
+        itemTextCount =
+            Item.toTextCount item
     in
     div [ style "color" color ]
-        [ h2 [] [ text item.title ]
-        , p [] [ text <| item.text ++ " (" ++ String.fromInt item.textCount ++ ")" ]
+        [ h2 [] [ text <| Item.toTitle item ]
+        , p [] [ text <| itemText ++ " (" ++ String.fromInt itemTextCount ++ ")" ]
         ]
 
 
